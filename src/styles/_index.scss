@@ -1,0 +1,11 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Barrel — forward all design system partials
+// ─────────────────────────────────────────────────────────────────────────────
+// Usage in component .module.scss files:
+//   @use '@/styles' as ds;
+//   .btn { @include ds.btn-primary; }
+//   .label { color: ds.$secondary; }
+// ─────────────────────────────────────────────────────────────────────────────
+
+@forward 'tokens';
+@forward 'mixins';

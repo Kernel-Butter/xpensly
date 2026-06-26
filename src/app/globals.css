@@ -3,86 +3,209 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   XPENSLY DESIGN SYSTEM — Single source of truth
+   ─────────────────────────────────────────────────────────────────────────────
+   All visual tokens live here. Changing a value in @theme propagates to every
+   Tailwind utility class (bg-*, text-*, border-*, etc.) across the entire app.
+
+   HOW TO CUSTOMIZE:
+   • Brand color  → change --color-primary (and -dark, -container, etc.)
+   • Typography   → change the font-size values in @theme
+   • Spacing      → change --spacing-* values
+   ───────────────────────────────────────────────────────────────────────────── */
+
 @theme inline {
-  /* Fonts */
+  /* ── Fonts ── */
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  /* Brand colors */
-  --color-primary:           #006b2c;
-  --color-primary-light:     #16a34a;
-  --color-primary-dark:      #15803d;
-  --color-primary-container: #00873a;
-  --color-on-primary:        #ffffff;
+  /* ── Brand / Primary (agricultural green) ── */
+  --color-primary:              #006b2c;
+  --color-primary-light:        #16a34a;   /* legacy alias — prefer --color-primary */
+  --color-primary-dark:         #15803d;
+  --color-primary-green-dark:   #15803d;
+  --color-primary-container:    #00873a;
+  --color-on-primary:           #ffffff;
   --color-on-primary-container: #f7fff2;
-  --color-inverse-primary:   #62df7d;
-  --color-primary-fixed:     #7ffc97;
+  --color-inverse-primary:      #62df7d;
+  --color-primary-fixed:        #7ffc97;
+  --color-primary-fixed-dim:    #62df7d;
+  --color-on-primary-fixed:          #002109;
+  --color-on-primary-fixed-variant:  #005320;
 
-  /* Surface / neutral */
-  --color-surface:                   #f9f9ff;
-  --color-surface-dim:               #d3daea;
-  --color-surface-bright:            #f9f9ff;
-  --color-surface-container-lowest:  #ffffff;
-  --color-surface-container-low:     #f0f3ff;
-  --color-surface-container:         #e7eefe;
-  --color-surface-container-high:    #e2e8f8;
-  --color-surface-container-highest: #dce2f3;
-  --color-on-surface:         #151c27;
-  --color-on-surface-variant: #3e4a3d;
-  --color-inverse-surface:    #2a313d;
-  --color-inverse-on-surface: #ebf1ff;
-  --color-outline:            #6e7b6c;
-  --color-outline-variant:    #bdcaba;
-  --color-surface-tint:       #006e2d;
-  --color-surface-green:      #f0fdf4;
-  --color-primary-green-dark: #15803d;
+  /* ── Secondary ── */
+  --color-secondary:                  #575e70;
+  --color-on-secondary:               #ffffff;
+  --color-secondary-container:        #d9dff5;
+  --color-on-secondary-container:     #5c6274;
+  --color-secondary-fixed:            #dce2f7;
+  --color-secondary-fixed-dim:        #c0c6db;
+  --color-on-secondary-fixed:         #141b2b;
+  --color-on-secondary-fixed-variant: #404758;
 
-  /* Semantic */
-  --color-secondary:           #575e70;
-  --color-on-secondary:        #ffffff;
-  --color-secondary-container: #d9dff5;
-  --color-on-secondary-container: #5c6274;
-  --color-tertiary:            #8d4b00;
-  --color-on-tertiary:         #ffffff;
-  --color-tertiary-container:  #b15f00;
-  --color-error:               #ba1a1a;
-  --color-on-error:            #ffffff;
-  --color-error-container:     #ffdad6;
-  --color-on-error-container:  #93000a;
-  --color-danger-red:          #dc2626;
+  /* ── Tertiary ── */
+  --color-tertiary:                  #8d4b00;
+  --color-on-tertiary:               #ffffff;
+  --color-tertiary-container:        #b15f00;
+  --color-on-tertiary-container:     #fffbff;
+  --color-tertiary-fixed:            #ffdcc3;
+  --color-tertiary-fixed-dim:        #ffb77d;
+  --color-on-tertiary-fixed:         #2f1500;
+  --color-on-tertiary-fixed-variant: #6e3900;
 
-  /* Grays */
+  /* ── Error / Danger ── */
+  --color-error:              #ba1a1a;
+  --color-on-error:           #ffffff;
+  --color-error-container:    #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-danger-red:         #dc2626;
+
+  /* ── Surfaces (tonal hierarchy) ── */
+  --color-background:                  #f9f9ff;
+  --color-on-background:               #151c27;
+  --color-surface:                     #f9f9ff;
+  --color-surface-bright:              #f9f9ff;
+  --color-surface-dim:                 #d3daea;
+  --color-surface-container-lowest:    #ffffff;
+  --color-surface-container-low:       #f0f3ff;
+  --color-surface-container:           #e7eefe;
+  --color-surface-container-high:      #e2e8f8;
+  --color-surface-container-highest:   #dce2f3;
+  --color-surface-variant:             #dce2f3;
+  --color-surface-tint:                #006e2d;
+  --color-surface-green:               #f0fdf4;
+  --color-on-surface:                  #151c27;
+  --color-on-surface-variant:          #3e4a3d;
+  --color-inverse-surface:             #2a313d;
+  --color-inverse-on-surface:          #ebf1ff;
+  --color-outline:                     #6e7b6c;
+  --color-outline-variant:             #bdcaba;
+
+  /* ── Grays ── */
   --color-gray-50:  #f9fafb;
   --color-gray-100: #f3f4f6;
   --color-gray-200: #e5e7eb;
 
-  /* Expense category colors */
+  /* ── Expense category colors ── */
   --color-cat-tractor:    #f59e0b;
   --color-cat-water:      #3b82f6;
   --color-cat-fertilizer: #22c55e;
   --color-cat-pesticides: #a855f7;
   --color-cat-wages:      #f97316;
 
-  /* Spacing scale (4px base) */
-  --spacing-xs:  4px;
-  --spacing-sm:  8px;
-  --spacing-md:  12px;
-  --spacing-lg:  16px;
-  --spacing-xl:  24px;
-  --spacing-xxl: 48px;
+  /* ── Spacing (4px base grid) ── */
+  --spacing-xs:               4px;
+  --spacing-sm:               8px;
+  --spacing-md:               12px;
+  --spacing-lg:               16px;
+  --spacing-xl:               24px;
+  --spacing-xxl:              48px;
   --spacing-container-padding: 16px;
   --spacing-gutter:            16px;
 
-  /* Border radius */
-  --radius-sm:   0.125rem;
-  --radius:      0.25rem;
-  --radius-md:   0.375rem;
-  --radius-lg:   0.5rem;
-  --radius-xl:   0.75rem;
-  --radius-full: 9999px;
+  /* ── Border radius ── */
+  --radius-sm:   0.125rem;  /* 2px  — badges, pills */
+  --radius:      0.25rem;   /* 4px  */
+  --radius-md:   0.375rem;  /* 6px  — buttons, inputs */
+  --radius-lg:   0.5rem;    /* 8px  — cards, containers */
+  --radius-xl:   0.75rem;   /* 12px — sheets, modals */
+  --radius-full: 9999px;    /* circular — icon containers */
 }
 
-/* Typography scale */
+/* ─────────────────────────────────────────────────────────────────────────────
+   TYPOGRAPHY SCALE — semantic utility classes
+   Use these instead of hardcoded text-[px] values.
+   Changing the font-size/weight tokens above updates all usages automatically.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Display / headlines */
+  .text-headline-lg {
+    font-family: var(--font-sans);
+    font-size: 30px;
+    line-height: 1.1;
+    font-weight: 700;
+  }
+  .text-headline-md {
+    font-family: var(--font-sans);
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+  .text-headline-sm {
+    font-family: var(--font-sans);
+    font-size: 20px;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+
+  /* Body / UI */
+  .text-title-md {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+  .text-body-base {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+  .text-body-sm {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+  .text-label-xs {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 400;
+  }
+
+  /* Currency / numeric — always JetBrains Mono */
+  .text-currency-lg {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+  .text-currency-md {
+    font-family: var(--font-mono);
+    font-size: 17px;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+  .text-currency-sm {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1.0;
+    font-weight: 500;
+  }
+
+  /* FAB shadow (primary-green glow) */
+  .shadow-fab {
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+  }
+
+  /* Hide scrollbar but keep scrollability */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Safe area for mobile PWA bottom inset */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ── Base ── */
 @layer base {
   :root {
     --background: var(--color-surface);
@@ -94,10 +217,5 @@
     color: var(--color-on-surface);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-  }
-
-  /* Safe area for mobile PWA */
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
   }
 }
