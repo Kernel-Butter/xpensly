@@ -9,9 +9,7 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
@@ -23,23 +21,39 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/onboarding')
+  const { pathname } = request.nextUrl
 
-  if (!user && !isAuthRoute) {
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/onboarding')
+
+  // Not logged in → send to login
+  if (!user && !isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  if (user && request.nextUrl.pathname === '/login') {
+  // Logged in + on login page → send to app
+  if (user && pathname === '/login') {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
+  }
+
+  // Logged in, not on onboarding → check if they have a business
+  if (user && !isAuthPage) {
+    const { data: memberships } = await supabase
+      .from('business_members')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1)
+
+    if (!memberships || memberships.length === 0) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/onboarding'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse
