@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/store/app.store'
 import { cn } from '@/lib/utils/cn'
 
-// Settings sub-pages manage their own FAB — hide the global one there
-const HIDDEN_PATHS = ['/settings']
+// These routes manage their own context-aware FAB — hide the global add-expense one
+const HIDDEN_PATHS = ['/settings', '/seasons']
 
 export function FAB() {
   const openAddExpense = useAppStore((s) => s.openAddExpense)
