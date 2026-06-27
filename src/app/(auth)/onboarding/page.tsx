@@ -45,7 +45,7 @@ export default function OnboardingPage() {
       {
         onSuccess: (business) => {
           setActiveBusiness(business)
-          router.push('/')
+          window.location.href = '/'
         },
       },
     )

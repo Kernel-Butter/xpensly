@@ -24,38 +24,23 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/onboarding')
 
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/onboarding')
-
-  // Not logged in → send to login
-  if (!user && !isAuthPage) {
+  // Unauthenticated → only auth routes are public
+  if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Logged in + on login page → send to app
+  // Authenticated + on login → send to app
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
-  // Logged in, not on onboarding → check if they have a business
-  if (user && !isAuthPage) {
-    const { data: memberships } = await supabase
-      .from('business_members')
-      .select('id')
-      .eq('user_id', user.id)
-      .limit(1)
-
-    if (!memberships || memberships.length === 0) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/onboarding'
-      return NextResponse.redirect(url)
-    }
-  }
-
+  // Business check is handled client-side in AppBootstrap — no DB call here
   return supabaseResponse
 }
 

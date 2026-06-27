@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const activeBusiness = useAppStore((s) => s.activeBusiness)
 
   async function handleSignOut() {
+    useAppStore.getState().resetSession()
     await supabase.auth.signOut()
     router.push('/login')
   }

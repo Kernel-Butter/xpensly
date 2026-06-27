@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { RefreshCw, CircleUser, FileText, Table } from 'lucide-react'
+import { RefreshCw, CircleUser, FileText, Table, Loader2 } from 'lucide-react'
 import { TopAppBar } from '@/components/shared/TopAppBar'
 import { useAppStore } from '@/store/app.store'
 import { useExpenses } from '@/hooks/queries/useExpenses'
@@ -13,6 +13,8 @@ const PERIODS = ['This Month', 'Last Month', 'Q3 2024', 'YTD']
 
 export default function ReportsPage() {
   const [activePeriodLabel, setActivePeriodLabel] = useState('This Month')
+  const [exportingExcel, setExportingExcel] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
   const { activePeriod, activeBusiness } = useAppStore()
   const config = activeBusiness?.config ?? agricultureConfig
   const currency = config.currency
@@ -23,6 +25,28 @@ export default function ReportsPage() {
   const total = summary?.total ?? 0
   const expenseCount = summary?.expenseCount ?? 0
   const costPerAcre = total > 0 ? total / 500 : 0
+
+  async function handleExportExcel() {
+    if (!expenses || !activeBusiness || !activePeriod) return
+    setExportingExcel(true)
+    try {
+      const { exportToExcel } = await import('@/lib/export/toExcel')
+      await exportToExcel({ expenses, business: activeBusiness, period: activePeriod, config })
+    } finally {
+      setExportingExcel(false)
+    }
+  }
+
+  async function handleExportPDF() {
+    if (!expenses || !activeBusiness || !activePeriod || !summary) return
+    setExportingPDF(true)
+    try {
+      const { exportToPDF } = await import('@/lib/export/toPDF')
+      await exportToPDF({ expenses, business: activeBusiness, period: activePeriod, config, summary })
+    } finally {
+      setExportingPDF(false)
+    }
+  }
 
   /* Build category breakdown from real expenses */
   const catTotals: Record<string, number> = {}
@@ -135,13 +159,21 @@ export default function ReportsPage() {
 
         {/* Export buttons */}
         <div className="flex gap-3">
-          <button className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-surface py-3 text-title-md text-on-surface hover:bg-gray-50 active:scale-[0.98] transition-all">
-            <FileText size={18} />
+          <button
+            onClick={handleExportPDF}
+            disabled={exportingPDF || !expenses?.length}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-surface py-3 text-title-md text-on-surface hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exportingPDF ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
             Export PDF
           </button>
-          <button className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-surface py-3 text-title-md text-on-surface hover:bg-gray-50 active:scale-[0.98] transition-all">
-            <Table size={18} />
-            Export CSV
+          <button
+            onClick={handleExportExcel}
+            disabled={exportingExcel || !expenses?.length}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-surface py-3 text-title-md text-on-surface hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exportingExcel ? <Loader2 size={18} className="animate-spin" /> : <Table size={18} />}
+            Export Excel
           </button>
         </div>
       </main>

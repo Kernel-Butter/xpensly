@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { signInWithEmail, signUpWithEmail } from '@/lib/supabase/auth'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
 import {
   User, Lock, Eye, EyeOff, ArrowRight, Mail,
@@ -11,6 +12,7 @@ import {
 type Mode = 'signin' | 'signup'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [mode, setMode] = useState<Mode>('signin')
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
@@ -28,16 +30,20 @@ export default function LoginPage() {
     setSuccess(null)
 
     if (mode === 'signin') {
-      const result = await signInWithEmail(email, password)
-      if (result?.error) setError(result.error)
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+      if (err) { setError(err.message); setLoading(false); return }
+      // Full reload so middleware picks up the new session cookie cleanly
+      window.location.href = '/'
     } else {
       if (!agreed) { setError('Please agree to the Terms of Service.'); setLoading(false); return }
-      const result = await signUpWithEmail(email, password, fullName)
-      if (result?.error) setError(result.error)
-      if (result?.success) setSuccess(result.success)
+      const { error: err } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { full_name: fullName } },
+      })
+      if (err) { setError(err.message); setLoading(false); return }
+      setSuccess('Check your email to confirm your account.')
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   function switchMode(m: Mode) {
@@ -48,7 +54,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-[400px]">
+    <div className="w-full max-w-100">
       {mode === 'signin' ? (
         /* ── LOGIN CARD ── */
         <div className="w-full rounded-xl border border-gray-200 bg-surface p-4 flex flex-col gap-6">
@@ -63,7 +69,6 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            {/* Email/Phone */}
             <div className="flex flex-col gap-1">
               <label className="text-[11px] text-secondary ml-1" htmlFor="identifier">
                 Email or Phone
@@ -82,7 +87,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between ml-1">
                 <label className="text-[11px] text-secondary" htmlFor="password">Password</label>
@@ -115,25 +119,22 @@ export default function LoginPage() {
               <p className="rounded-lg bg-error-container px-3 py-2 text-[13px] text-danger-red">{error}</p>
             )}
 
-            {/* Login button */}
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-[17px] font-[500] text-on-primary transition-colors hover:bg-primary-green-dark disabled:opacity-50"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-[17px] font-medium text-on-primary transition-colors hover:bg-primary-green-dark disabled:opacity-50"
             >
               {loading ? 'Signing in…' : 'Login'}
               {!loading && <ArrowRight size={18} />}
             </button>
           </form>
 
-          {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200" />
             <span className="text-[11px] text-secondary">Or sign up with</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
-          {/* Google */}
           <button
             type="button"
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-surface py-3 text-[13px] text-on-surface transition-colors hover:bg-gray-50"
@@ -147,13 +148,12 @@ export default function LoginPage() {
             Google
           </button>
 
-          {/* Switch to signup */}
           <p className="text-center text-[13px] text-secondary">
             Don&apos;t have an account?{' '}
             <button
               type="button"
               onClick={() => switchMode('signup')}
-              className="ml-1 text-[17px] font-[500] text-primary hover:underline"
+              className="ml-1 text-[17px] font-medium text-primary hover:underline"
             >
               Sign up
             </button>
@@ -162,23 +162,20 @@ export default function LoginPage() {
       ) : (
         /* ── SIGN UP CARD ── */
         <div className="w-full rounded-xl border border-gray-200 bg-surface-container-lowest overflow-hidden flex flex-col">
-          {/* Top bar */}
           <header className="flex w-full items-center justify-center gap-2 border-b border-gray-200 bg-surface px-4 py-6">
             <Sprout size={28} className="text-primary" />
             <h1 className="text-[24px] font-bold text-primary">Xpensly</h1>
           </header>
 
-          {/* Form */}
           <div className="flex flex-col gap-4 p-4">
             <div className="mb-1">
-              <h2 className="text-[20px] font-[600] text-on-surface">Create your account</h2>
+              <h2 className="text-[20px] font-semibold text-on-surface">Create your account</h2>
               <p className="text-[13px] text-secondary mt-1">Start tracking your agricultural expenses today.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              {/* Full Name */}
               <div className="flex flex-col gap-1">
-                <label className="text-[17px] font-[500] text-on-surface" htmlFor="fullName">Full Name</label>
+                <label className="text-[17px] font-medium text-on-surface" htmlFor="fullName">Full Name</label>
                 <div className="relative">
                   <User size={20} className="absolute left-2 top-1/2 -translate-y-1/2 text-secondary" />
                   <input
@@ -193,9 +190,8 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Email/Phone */}
               <div className="flex flex-col gap-1">
-                <label className="text-[17px] font-[500] text-on-surface" htmlFor="signupEmail">Email or Phone</label>
+                <label className="text-[17px] font-medium text-on-surface" htmlFor="signupEmail">Email or Phone</label>
                 <div className="relative">
                   <Mail size={20} className="absolute left-2 top-1/2 -translate-y-1/2 text-secondary" />
                   <input
@@ -210,9 +206,8 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Password */}
               <div className="flex flex-col gap-1">
-                <label className="text-[17px] font-[500] text-on-surface" htmlFor="signupPassword">Password</label>
+                <label className="text-[17px] font-medium text-on-surface" htmlFor="signupPassword">Password</label>
                 <div className="relative">
                   <Lock size={20} className="absolute left-2 top-1/2 -translate-y-1/2 text-secondary" />
                   <input
@@ -234,7 +229,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Terms */}
               <div className="mt-1 flex items-start gap-2">
                 <input
                   id="terms"
@@ -242,7 +236,7 @@ export default function LoginPage() {
                   required
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-0.5 h-[18px] w-[18px] cursor-pointer rounded border-gray-200 bg-gray-50 text-primary focus:ring-primary"
+                  className="mt-0.5 h-4.5 w-4.5 cursor-pointer rounded border-gray-200 bg-gray-50 text-primary focus:ring-primary"
                 />
                 <label htmlFor="terms" className="cursor-pointer text-[13px] text-secondary">
                   I agree to the{' '}
@@ -259,23 +253,21 @@ export default function LoginPage() {
                 <p className="rounded-lg bg-surface-green px-3 py-2 text-[13px] text-primary">{success}</p>
               )}
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-[6px] bg-primary py-3 text-[17px] font-[500] text-on-primary transition-colors hover:bg-primary-container active:scale-[0.98] disabled:opacity-50"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-[17px] font-medium text-on-primary transition-colors hover:bg-primary-container active:scale-[0.98] disabled:opacity-50"
               >
                 {loading ? 'Creating…' : 'Create Account'}
                 {!loading && <ArrowRight size={20} />}
               </button>
 
-              {/* Switch to login */}
               <p className="mt-1 text-center text-[13px] text-secondary">
                 Already have an account?{' '}
                 <button
                   type="button"
                   onClick={() => switchMode('signin')}
-                  className="text-primary font-[500] hover:underline"
+                  className="text-primary font-medium hover:underline"
                 >
                   Log in here
                 </button>

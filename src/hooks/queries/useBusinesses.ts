@@ -12,7 +12,7 @@ export function useBusinesses() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('businesses')
-        .select('*, business_members!inner(role, user_id)')
+        .select('*')
         .order('created_at', { ascending: true })
       if (error) throw error
       return data as Business[]

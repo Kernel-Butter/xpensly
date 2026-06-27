@@ -2,22 +2,25 @@
 
 import { Filter } from 'lucide-react'
 import { TopAppBar } from '@/components/shared/TopAppBar'
-import { CategoryIcon } from '@/components/shared/CategoryIcon'
+import { SwipeableExpenseRow } from '@/components/expense/SwipeableExpenseRow'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { useAppStore } from '@/store/app.store'
 import { useExpenses } from '@/hooks/queries/useExpenses'
 import { usePeriodSummary } from '@/hooks/queries/usePeriodSummary'
+import { useDeleteExpense } from '@/hooks/mutations/useDeleteExpense'
 import { agricultureConfig } from '@/lib/config/business-configs'
-import { fmtCurrency, fmtDate, fmtTime, friendlyDate, groupByDate } from '@/lib/utils/format'
+import { fmtCurrency, friendlyDate, fmtDate, groupByDate } from '@/lib/utils/format'
+import type { Expense, ExpenseId } from '@/types'
 
 export default function ExpensesPage() {
-  const { activePeriod, activeBusiness } = useAppStore()
+  const { activePeriod, activeBusiness, openEditExpense } = useAppStore()
   const config = activeBusiness?.config ?? agricultureConfig
   const currency = config.currency
 
   const { data: expenses, isLoading } = useExpenses(activePeriod?.id)
   const { data: summary } = usePeriodSummary(activePeriod?.id)
+  const { mutate: deleteExpense } = useDeleteExpense(activePeriod?.id ?? '')
 
   const grouped = groupByDate(expenses ?? []) as Record<string, typeof expenses>
   const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
@@ -79,7 +82,6 @@ export default function ExpensesPage() {
         ) : (
           sortedDates.map((date) => (
             <section key={date} className="flex flex-col gap-2">
-              {/* Sticky date header */}
               <h2 className="text-title-md text-on-surface-variant sticky top-[57px] bg-gray-50/90 backdrop-blur-sm z-10 py-1 px-2">
                 {friendlyDate(date)} — {fmtDate(date)}
               </h2>
@@ -89,35 +91,15 @@ export default function ExpensesPage() {
                   const cat = config.categories.find((c) => c.id === expense.category_id)
                   const isLast = idx === (grouped[date]?.length ?? 0) - 1
                   return (
-                    <div
+                    <SwipeableExpenseRow
                       key={expense.id}
-                      className={`flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors ${isLast ? '' : 'border-b border-gray-100'}`}
-                    >
-                      <div
-                        className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
-                        style={{
-                          backgroundColor: `${cat?.color ?? '#6b7280'}20`,
-                          color: cat?.color ?? '#6b7280',
-                        }}
-                      >
-                        <CategoryIcon iconName={cat?.icon ?? 'Settings'} size={20} />
-                      </div>
-
-                      <div className="flex-1 flex flex-col min-w-0">
-                        <span className="text-title-md text-on-surface truncate">
-                          {expense.description ?? cat?.name ?? expense.category_id}
-                        </span>
-                        <span className="text-body-sm text-on-surface-variant">
-                          {fmtDate(expense.date)}, {fmtTime(expense.created_at)}
-                        </span>
-                      </div>
-
-                      <div className="text-right shrink-0">
-                        <span className="text-currency-md text-danger-red">
-                          {fmtCurrency(expense.total, currency)}
-                        </span>
-                      </div>
-                    </div>
+                      expense={expense as Expense}
+                      cat={cat}
+                      currency={currency}
+                      isLast={isLast}
+                      onDelete={() => deleteExpense(expense.id as ExpenseId)}
+                      onEdit={() => openEditExpense(expense as Expense)}
+                    />
                   )
                 })}
               </div>

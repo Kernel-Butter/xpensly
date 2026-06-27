@@ -3,18 +3,20 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  Store, Wallet, Bell, AlertTriangle, Moon,
-  Shield, LogOut, ChevronRight, CircleUser,
+  Building2, Tag, LogOut, ChevronRight, CircleUser, Users, MapPin,
 } from 'lucide-react'
 import { TopAppBar } from '@/components/shared/TopAppBar'
 import { supabase } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/app.store'
+import { useBusinesses } from '@/hooks/queries/useBusinesses'
 
 export default function SettingsPage() {
   const router = useRouter()
-  const activeBusiness = useAppStore((s) => s.activeBusiness)
+  const { activeBusiness, resetSession } = useAppStore()
+  const { data: businesses = [] } = useBusinesses()
 
   async function handleSignOut() {
+    resetSession()
     await supabase.auth.signOut()
     router.push('/login')
   }
@@ -24,29 +26,32 @@ export default function SettingsPage() {
       <TopAppBar />
 
       <main className="mx-auto w-full max-w-2xl px-4 py-4 space-y-6">
-        {/* Profile card */}
+        {/* Active business card */}
         <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-surface p-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-container">
-            <CircleUser size={32} className="text-primary" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-container">
+            <CircleUser size={28} className="text-primary" />
           </div>
-          <div>
-            <p className="text-title-md text-on-surface">{activeBusiness?.name ?? 'My Business'}</p>
-            <p className="text-body-sm text-on-surface-variant">Farm Operations</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-title-md text-on-surface truncate">{activeBusiness?.name ?? 'No business selected'}</p>
+            <p className="text-body-sm text-on-surface-variant capitalize">{activeBusiness?.type ?? '—'}</p>
           </div>
+          <Link
+            href="/settings/businesses"
+            className="text-body-sm text-primary font-medium px-3 py-1.5 rounded-lg hover:bg-surface-green transition-colors shrink-0"
+          >
+            Switch
+          </Link>
         </div>
 
-        {/* Business Settings */}
-        <SettingsGroup title="Business Settings">
+        {/* Businesses */}
+        <SettingsGroup title="Businesses">
           <SettingsRow
-            icon={<Store size={20} className="text-primary" />}
-            label="Business Profile"
-            href="/settings/business"
-          />
-          <SettingsRow
-            icon={<Wallet size={20} className="text-primary" />}
-            label="Currency & Formats"
-            trailing={<span className="text-currency-sm text-on-surface-variant">PKR (₨)</span>}
-            href="/settings/currency"
+            icon={<Building2 size={20} className="text-primary" />}
+            label="My Businesses"
+            trailing={
+              <span className="text-body-sm text-on-surface-variant mr-1">{businesses.length}</span>
+            }
+            href="/settings/businesses"
             last
           />
         </SettingsGroup>
@@ -54,65 +59,44 @@ export default function SettingsPage() {
         {/* Manage */}
         <SettingsGroup title="Manage">
           <SettingsRow
-            icon={<Bell size={20} className="text-primary" />}
-            label="Manage Categories"
+            icon={<Tag size={20} className="text-primary" />}
+            label="Categories"
+            trailing={
+              <span className="text-body-sm text-on-surface-variant mr-1">
+                {activeBusiness?.config?.categories?.length ?? 0}
+              </span>
+            }
             href="/settings/categories"
           />
           <SettingsRow
-            icon={<Shield size={20} className="text-primary" />}
-            label="Manage Workers"
+            icon={<Users size={20} className="text-primary" />}
+            label="Workers"
             href="/settings/workers"
-            last
-          />
-        </SettingsGroup>
-
-        {/* Notifications */}
-        <SettingsGroup title="Notifications">
-          <SettingsRow
-            icon={<Bell size={20} className="text-primary" />}
-            label="Push Notifications"
-            trailing={<Toggle on />}
           />
           <SettingsRow
-            icon={<AlertTriangle size={20} className="text-primary" />}
-            label="Budget Alerts"
-            href="/settings/alerts"
-            last
-          />
-        </SettingsGroup>
-
-        {/* Appearance */}
-        <SettingsGroup title="Appearance">
-          <SettingsRow
-            icon={<Moon size={20} className="text-primary" />}
-            label="Theme"
-            trailing={<span className="text-body-sm text-on-surface-variant">System</span>}
-            href="/settings/theme"
+            icon={<MapPin size={20} className="text-primary" />}
+            label="Fields"
+            href="/settings/fields"
             last
           />
         </SettingsGroup>
 
         {/* Account */}
         <SettingsGroup title="Account">
-          <SettingsRow
-            icon={<Shield size={20} className="text-primary" />}
-            label="Security & Privacy"
-            href="/settings/security"
-          />
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center justify-between p-3 hover:bg-error-container transition-colors"
+            className="flex w-full items-center justify-between p-3 hover:bg-red-50 transition-colors rounded-xl"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-error-container/50">
-                <LogOut size={20} className="text-error" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                <LogOut size={20} className="text-red-500" />
               </div>
-              <span className="text-body-base text-error">Sign Out</span>
+              <span className="text-body-base text-red-500">Sign Out</span>
             </div>
           </button>
         </SettingsGroup>
 
-        <p className="text-center text-body-sm text-on-surface-variant pb-2">Xpensly v1.0.0</p>
+        <p className="text-center text-label-xs text-on-surface-variant pb-2">Xpensly v1.0.0</p>
       </main>
     </div>
   )
@@ -154,12 +138,4 @@ function SettingsRow({
   )
   if (href) return <Link href={href}>{inner}</Link>
   return inner
-}
-
-function Toggle({ on }: { on: boolean }) {
-  return (
-    <div className={`relative inline-block h-6 w-12 rounded-full transition-colors ${on ? 'bg-primary' : 'bg-gray-200'}`}>
-      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${on ? 'left-7' : 'left-1'}`} />
-    </div>
-  )
 }

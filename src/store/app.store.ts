@@ -21,6 +21,7 @@ type AppActions = {
   closeAddExpense:   () => void
   openEditExpense:   (expense: Expense) => void
   closeEditExpense:  () => void
+  resetSession:      () => void
 }
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -39,9 +40,17 @@ export const useAppStore = create<AppState & AppActions>()(
       closeAddExpense:   ()  => set((s) => { s.isAddExpenseOpen = false }),
       openEditExpense:   (e) => set((s) => { s.editingExpense = e; s.isAddExpenseOpen = true }),
       closeEditExpense:  ()  => set((s) => { s.editingExpense = null; s.isAddExpenseOpen = false }),
+      resetSession:      ()  => set((s) => {
+        s.activeBusiness   = null
+        s.activeContext    = null
+        s.activePeriod     = null
+        s.isAddExpenseOpen = false
+        s.editingExpense   = null
+      }),
     })),
     {
       name: 'xpensly-app',
+      skipHydration: true,
       partialize: (state) => ({
         activeBusiness: state.activeBusiness,
         activeContext:  state.activeContext,
