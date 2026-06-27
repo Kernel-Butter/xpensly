@@ -21,29 +21,32 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // getSession() reads the JWT from cookies locally — no network call.
+  // getUser() makes a live Supabase API call on every request which can
+  // time out on Vercel Edge Runtime and cause redirect loops.
+  const { data: { session } } = await supabase.auth.getSession()
+  const isLoggedIn = !!session
 
   const { pathname } = request.nextUrl
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/onboarding')
 
-  // Unauthenticated → only auth routes are public
-  if (!user && !isAuthRoute) {
+  if (!isLoggedIn && !isAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Authenticated + on login → send to app
-  if (user && pathname === '/login') {
+  if (isLoggedIn && pathname === '/login') {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
-  // Business check is handled client-side in AppBootstrap — no DB call here
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icons|manifest.json).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|_next/webpack-hmr|favicon.ico|icons|manifest.json|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+  ],
 }
