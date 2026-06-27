@@ -3,6 +3,7 @@ import { FAB } from '@/components/shared/FAB'
 import { AddExpenseSheet } from '@/components/expense/AddExpenseSheet'
 import { AppBootstrap } from '@/components/shared/AppBootstrap'
 import { OfflineSync } from '@/components/shared/OfflineSync'
+import { InstallBanner } from '@/components/shared/InstallBanner'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <BottomNav />
       <FAB />
       <AddExpenseSheet />
+      <InstallBanner />
     </div>
   )
 }
