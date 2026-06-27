@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X, CheckCircle, Calendar, Camera, ChevronDown, AlertCircle } from 'lucide-react'
+import { Drawer, ConfigProvider } from 'antd'
 import { CategoryIcon } from '@/components/shared/CategoryIcon'
 import { useAppStore } from '@/store/app.store'
 import { useAddExpense } from '@/hooks/mutations/useAddExpense'
@@ -17,6 +18,15 @@ import { fmtCurrency } from '@/lib/utils/format'
 import { cn } from '@/lib/utils/cn'
 import { supabase } from '@/lib/supabase/client'
 import type { ExpenseId } from '@/types'
+
+const antdTheme = {
+  token: {
+    colorPrimary: '#006b2c',
+    colorBgMask: 'rgba(0,0,0,0.5)',
+    borderRadius: 24,
+    fontFamily: 'var(--font-sans, Inter, system-ui, sans-serif)',
+  },
+}
 
 export function AddExpenseSheet() {
   const {
@@ -57,8 +67,9 @@ export function AddExpenseSheet() {
   const selectedCatId = watch('category_id')
   const selectedCat   = config.categories.find((c) => c.id === selectedCatId)
   const isWageCat     = selectedCat?.isWageType === true
+  const noPeriod      = !periodId
+  const noBusiness    = !activeBusiness
 
-  // Pre-fill form when editing
   useEffect(() => {
     if (editingExpense) {
       reset({
@@ -79,13 +90,11 @@ export function AddExpenseSheet() {
     }
   }, [editingExpense, reset, config.categories])
 
-  // Auto-compute total from qty × unit cost
   useEffect(() => {
     const computed = calculateTotal(quantity ?? null, unit_cost ?? null)
     if (computed !== null) setValue('total', computed)
   }, [quantity, unit_cost, setValue])
 
-  // Auto-fill unit cost from selected worker's daily rate
   function handleWorkerChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const workerId = e.target.value
     setValue('worker_id', workerId || undefined)
@@ -165,52 +174,79 @@ export function AddExpenseSheet() {
     }
   }
 
-  if (!isAddExpenseOpen) return null
-
-  const noPeriod    = !periodId
-  const noBusiness  = !activeBusiness
+  const submitFooter = (
+    <div className="px-4 py-3">
+      {noBusiness || noPeriod ? (
+        <div className="rounded-xl bg-gray-100 py-3.5 text-center text-title-md text-on-surface-variant">
+          {noBusiness ? 'Select a business to continue' : 'Create a season to continue'}
+        </div>
+      ) : (
+        <button
+          type="submit"
+          form="expense-form"
+          disabled={isPending || uploadingReceipt}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-title-md text-on-primary shadow-[0_4px_12px_rgba(22,163,74,0.3)] hover:bg-primary-dark transition-all active:scale-[0.98] disabled:opacity-50"
+        >
+          <CheckCircle size={20} />
+          {uploadingReceipt ? 'Uploading…' : isPending ? 'Saving…' : isEditMode ? 'Update Expense' : 'Save Expense'}
+        </button>
+      )}
+    </div>
+  )
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-on-background/40" onClick={handleClose} />
-
-      <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col rounded-t-3xl bg-surface shadow-xl animate-in slide-in-from-bottom duration-300 ease-out">
-        {/* Handle + title */}
-        <div className="flex flex-col items-center pt-3 pb-2 relative">
+    <ConfigProvider theme={antdTheme}>
+      <Drawer
+        open={isAddExpenseOpen}
+        onClose={handleClose}
+        placement="bottom"
+        height="92dvh"
+        closable={false}
+        footer={submitFooter}
+        styles={{
+          wrapper: { borderRadius: '24px 24px 0 0', overflow: 'hidden' },
+          body:    { padding: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' },
+          footer:  { padding: 0, borderTop: '1px solid #f3f4f6' },
+        }}
+      >
+        {/* Handle + title row */}
+        <div className="sticky top-0 z-10 bg-surface flex flex-col items-center pt-3 pb-2">
           <div className="h-1.5 w-12 rounded-full bg-gray-200 mb-3" />
-          <h2 className="text-headline-sm text-on-surface w-full text-center px-4">
-            {isEditMode ? 'Edit Expense' : 'Add Expense'}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="absolute top-3 right-4 rounded-full p-1 text-on-surface-variant hover:bg-gray-100"
-          >
-            <X size={20} />
-          </button>
+          <div className="w-full flex items-center justify-center px-4 relative">
+            <h2 className="text-headline-sm text-on-surface">
+              {isEditMode ? 'Edit Expense' : 'Add Expense'}
+            </h2>
+            <button
+              onClick={handleClose}
+              className="absolute right-4 rounded-full p-1 text-on-surface-variant hover:bg-gray-100"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
-        {/* Blocking banners */}
-        {noBusiness && (
-          <div className="mx-4 mb-2 flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-            <AlertCircle size={18} className="text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-title-md text-amber-800">No business selected</p>
-              <p className="text-body-sm text-amber-700">Go to Settings → Businesses to create or select one.</p>
+        <div className="px-4 pt-2 pb-4 space-y-5">
+          {/* Blocking banners */}
+          {noBusiness && (
+            <div className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+              <AlertCircle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-title-md text-amber-800">No business selected</p>
+                <p className="text-body-sm text-amber-700">Go to Settings → Businesses to create or select one.</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {!noBusiness && noPeriod && (
-          <div className="mx-4 mb-2 flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-            <AlertCircle size={18} className="text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-title-md text-amber-800">No active season</p>
-              <p className="text-body-sm text-amber-700">Create a season first — tap the season banner on the dashboard.</p>
+          {!noBusiness && noPeriod && (
+            <div className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+              <AlertCircle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-title-md text-amber-800">No active season</p>
+                <p className="text-body-sm text-amber-700">Create a season first — tap the season banner on the dashboard.</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="overflow-y-auto px-4 pb-28 space-y-5 mt-1">
           {/* Category pills */}
           <div>
             <p className="text-title-md text-on-surface-variant mb-3">Category</p>
@@ -225,7 +261,7 @@ export function AddExpenseSheet() {
                     className={cn(
                       'shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl transition-colors',
                       active
-                        ? 'border-2 text-white'
+                        ? 'border-2'
                         : 'border border-gray-200 bg-gray-50 text-on-surface-variant hover:bg-gray-100',
                     )}
                     style={active ? { borderColor: cat.color, backgroundColor: `${cat.color}20`, color: cat.color } : {}}
@@ -261,7 +297,7 @@ export function AddExpenseSheet() {
               {errors.date && <p className="mt-1 text-label-xs text-red-500">{errors.date.message}</p>}
             </div>
 
-            {/* Worker picker — only for wage categories */}
+            {/* Worker picker — wage categories only */}
             {isWageCat && workers.length > 0 && (
               <div>
                 <label className="block text-body-sm text-on-surface-variant mb-1">Worker</label>
@@ -322,7 +358,7 @@ export function AddExpenseSheet() {
               />
             </div>
 
-            {/* Receipt photo */}
+            {/* Receipt */}
             <div>
               <label className="block text-body-sm text-on-surface-variant mb-1">Receipt (Optional)</label>
               <input
@@ -364,9 +400,7 @@ export function AddExpenseSheet() {
             {/* Total preview */}
             <div className={cn(
               'flex items-center justify-between rounded-xl border p-3',
-              errors.total
-                ? 'border-red-300 bg-red-50'
-                : 'border-primary/20 bg-surface-green',
+              errors.total ? 'border-red-300 bg-red-50' : 'border-primary/20 bg-surface-green',
             )}>
               <span className={cn('text-title-md', errors.total ? 'text-red-700' : 'text-primary-dark')}>
                 Total Amount
@@ -375,7 +409,6 @@ export function AddExpenseSheet() {
                 {fmtCurrency(total ?? 0, currency)}
               </span>
             </div>
-
             {errors.total && (
               <p className="text-label-xs text-red-500">
                 {errors.total.message ?? 'Enter an amount greater than 0'}
@@ -383,26 +416,7 @@ export function AddExpenseSheet() {
             )}
           </form>
         </div>
-
-        {/* Sticky submit */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-100 bg-surface p-4">
-          {(noBusiness || noPeriod) ? (
-            <div className="rounded-xl bg-gray-100 py-3.5 text-center text-title-md text-on-surface-variant">
-              {noBusiness ? 'Select a business to continue' : 'Create a season to continue'}
-            </div>
-          ) : (
-            <button
-              type="submit"
-              form="expense-form"
-              disabled={isPending || uploadingReceipt}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-title-md text-on-primary shadow-[0_4px_12px_rgba(22,163,74,0.3)] hover:bg-primary-dark transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              <CheckCircle size={20} />
-              {uploadingReceipt ? 'Uploading…' : isPending ? 'Saving…' : isEditMode ? 'Update Expense' : 'Save Expense'}
-            </button>
-          )}
-        </div>
-      </div>
-    </>
+      </Drawer>
+    </ConfigProvider>
   )
 }
