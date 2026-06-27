@@ -38,10 +38,14 @@ export function useCreateBusiness() {
         .insert({ id: businessId, ...input, config, created_by: user.id })
       if (bError) throw bError
 
-      // Add as owner first, then select (is_member check will now pass)
+      // Upsert owner membership — idempotent and works even if INSERT policy
+      // previously blocked the first attempt (see migration 20260627_fix_members_rls.sql)
       const { error: mError } = await db
         .from('business_members')
-        .insert({ business_id: businessId, user_id: user.id, role: 'owner', joined_at: new Date().toISOString() })
+        .upsert(
+          { business_id: businessId, user_id: user.id, role: 'owner', joined_at: new Date().toISOString() },
+          { onConflict: 'business_id,user_id' },
+        )
       if (mError) throw mError
 
       const { data: business, error: fetchError } = await db
