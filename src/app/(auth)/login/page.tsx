@@ -19,9 +19,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [agreed, setAgreed] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const [loading, setLoading]             = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [error, setError]                 = useState<string | null>(null)
+  const [success, setSuccess]             = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -51,6 +52,20 @@ export default function LoginPage() {
     setError(null)
     setSuccess(null)
     setShowPassword(false)
+  }
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true)
+    setError(null)
+    const { error: err } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { access_type: 'offline', prompt: 'consent' },
+      },
+    })
+    if (err) { setError(err.message); setGoogleLoading(false) }
+    // On success the browser navigates away — no need to setLoading(false)
   }
 
   return (
@@ -137,15 +152,24 @@ export default function LoginPage() {
 
           <button
             type="button"
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-surface py-3 text-[13px] text-on-surface transition-colors hover:bg-gray-50"
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-surface py-3 text-[13px] text-on-surface transition-colors hover:bg-gray-50 disabled:opacity-50"
           >
-            <svg width="20" height="20" viewBox="0 0 48 48">
-              <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.6 32.4 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.7 7.1 29.1 5 24 5 12.9 5 4 13.9 4 25s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/>
-              <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.7 7.1 29.1 5 24 5c-7.6 0-14.2 4.2-17.7 9.7z"/>
-              <path fill="#4CAF50" d="M24 45c5 0 9.6-1.9 13-5l-6-5.2C29.3 36.5 26.8 37.5 24 37.5c-5.2 0-9.5-3.5-11.1-8.2l-6.5 5C9.7 40.7 16.4 45 24 45z"/>
-              <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6 5.2C40.8 35.7 44 30.8 44 25c0-1.3-.1-2.6-.4-3.9z"/>
-            </svg>
-            Google
+            {googleLoading ? (
+              <svg className="animate-spin h-5 w-5 text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 48 48">
+                <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.6 32.4 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.7 7.1 29.1 5 24 5 12.9 5 4 13.9 4 25s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/>
+                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.7 7.1 29.1 5 24 5c-7.6 0-14.2 4.2-17.7 9.7z"/>
+                <path fill="#4CAF50" d="M24 45c5 0 9.6-1.9 13-5l-6-5.2C29.3 36.5 26.8 37.5 24 37.5c-5.2 0-9.5-3.5-11.1-8.2l-6.5 5C9.7 40.7 16.4 45 24 45z"/>
+                <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6 5.2C40.8 35.7 44 30.8 44 25c0-1.3-.1-2.6-.4-3.9z"/>
+              </svg>
+            )}
+            {googleLoading ? 'Redirecting…' : 'Continue with Google'}
           </button>
 
           <p className="text-center text-[13px] text-secondary">
@@ -260,6 +284,34 @@ export default function LoginPage() {
               >
                 {loading ? 'Creating…' : 'Create Account'}
                 {!loading && <ArrowRight size={20} />}
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span className="text-[11px] text-secondary">Or sign up with</span>
+                <div className="h-px flex-1 bg-gray-200" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-surface py-3 text-[13px] text-on-surface transition-colors hover:bg-gray-50 disabled:opacity-50"
+              >
+                {googleLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 48 48">
+                    <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.6 32.4 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.7 7.1 29.1 5 24 5 12.9 5 4 13.9 4 25s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/>
+                    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.7 7.1 29.1 5 24 5c-7.6 0-14.2 4.2-17.7 9.7z"/>
+                    <path fill="#4CAF50" d="M24 45c5 0 9.6-1.9 13-5l-6-5.2C29.3 36.5 26.8 37.5 24 37.5c-5.2 0-9.5-3.5-11.1-8.2l-6.5 5C9.7 40.7 16.4 45 24 45z"/>
+                    <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6 5.2C40.8 35.7 44 30.8 44 25c0-1.3-.1-2.6-.4-3.9z"/>
+                  </svg>
+                )}
+                {googleLoading ? 'Redirecting…' : 'Continue with Google'}
               </button>
 
               <p className="mt-1 text-center text-[13px] text-secondary">

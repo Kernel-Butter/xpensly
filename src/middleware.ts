@@ -28,7 +28,10 @@ export async function middleware(request: NextRequest) {
   const isLoggedIn = !!session
 
   const { pathname } = request.nextUrl
-  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/onboarding')
+  const isAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/auth/callback')
 
   if (!isLoggedIn && !isAuthRoute) {
     const url = request.nextUrl.clone()
