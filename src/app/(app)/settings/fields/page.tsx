@@ -5,21 +5,27 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Ruler, Sprout, MapPin, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { BottomSheet } from '@/components/shared/BottomSheet'
+import { UnitPicker } from '@/components/shared/UnitPicker'
 import { useAppStore } from '@/store/app.store'
 import { useContexts } from '@/hooks/queries/useContexts'
 import { useCreateContext } from '@/hooks/mutations/useCreateContext'
+import { useUpdateBusinessConfig } from '@/hooks/mutations/useUpdateBusinessConfig'
+import { agricultureConfig } from '@/lib/config/business-configs'
 import type { Context } from '@/types'
 
 export default function FieldsPage() {
   const router = useRouter()
   const { activeBusiness, activeContext, setActiveContext } = useAppStore()
+  const config = activeBusiness?.config ?? agricultureConfig
 
   const { data: contexts = [], isLoading } = useContexts(activeBusiness?.id)
-  const { mutate: createContext, isPending } = useCreateContext()
+  const { mutate: createContext, isPending }   = useCreateContext()
+  const { mutate: updateConfig }               = useUpdateBusinessConfig()
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [fieldName, setFieldName] = useState('')
-  const [fieldAcres, setFieldAcres] = useState('')
+  const [fieldSize, setFieldSize] = useState('')
+  const [fieldUnit, setFieldUnit] = useState('acres')
   const [fieldNotes, setFieldNotes] = useState('')
   const [nameError, setNameError] = useState('')
 
@@ -30,7 +36,8 @@ export default function FieldsPage() {
 
   function openSheet() {
     setFieldName('')
-    setFieldAcres('')
+    setFieldSize('')
+    setFieldUnit('acres')
     setFieldNotes('')
     setNameError('')
     setSheetOpen(true)
@@ -44,16 +51,22 @@ export default function FieldsPage() {
     if (!activeBusiness) return
     setNameError('')
 
+    const unit = fieldUnit.trim() || 'acres'
+
     createContext(
       {
         business_id: activeBusiness.id,
-        name: fieldName.trim(),
-        unit_size: fieldAcres ? parseFloat(fieldAcres) : null,
-        unit_label: fieldAcres ? 'acres' : null,
-        notes: fieldNotes || null,
+        name:        fieldName.trim(),
+        unit_size:   fieldSize ? parseFloat(fieldSize) : null,
+        unit_label:  fieldSize ? unit : null,
+        notes:       fieldNotes || null,
       },
       {
         onSuccess: (newCtx) => {
+          // Save new unit to master units list so it syncs everywhere
+          if (fieldSize && !config.units.includes(unit)) {
+            updateConfig({ ...config, units: [...config.units, unit] })
+          }
           if (!activeContext) setActiveContext(newCtx)
           setSheetOpen(false)
         },
@@ -161,17 +174,23 @@ export default function FieldsPage() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-body-sm text-on-surface-variant">Size</label>
-          <div className="relative">
-            <input
-              value={fieldAcres}
-              onChange={(e) => setFieldAcres(e.target.value)}
-              type="number"
-              inputMode="decimal"
-              placeholder="0"
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 pr-16 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-            />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-body-sm text-on-surface-variant">Acres</span>
-          </div>
+          <input
+            value={fieldSize}
+            onChange={(e) => setFieldSize(e.target.value)}
+            type="number"
+            inputMode="decimal"
+            placeholder="0"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-body-sm text-on-surface-variant">Unit</label>
+          <UnitPicker
+            value={fieldUnit}
+            onChange={setFieldUnit}
+            suggestions={config.units ?? []}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">

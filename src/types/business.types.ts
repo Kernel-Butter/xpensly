@@ -34,6 +34,8 @@ export type BusinessConfig = {
   }
   currency: string
   categories: Category[]
+  /** Master list of measurement units used anywhere in this business (fields + categories). */
+  units: string[]
 }
 
 export type Business = {

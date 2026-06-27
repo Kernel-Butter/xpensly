@@ -323,7 +323,11 @@ export function AddExpenseSheet() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-body-sm text-on-surface-variant mb-1">
-                  {isWageCat ? 'Days' : 'Qty / Area'}
+                  {isWageCat
+                    ? 'Days'
+                    : selectedCat?.unitLabel
+                      ? `Qty (${selectedCat.unitLabel})`
+                      : 'Qty / Area'}
                 </label>
                 <input
                   type="number"

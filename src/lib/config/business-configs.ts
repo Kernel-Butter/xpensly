@@ -8,6 +8,7 @@ export const agricultureConfig: BusinessConfig = {
   type: 'agriculture',
   labels: { context: 'Field', period: 'Crop season', quantity: 'Acres' },
   currency: 'PKR',
+  units: ['acres', 'bigha', 'kanal', 'marla', 'bags', 'litres', 'kg', 'hours', 'days'],
   categories: [
     cat({ id: 'tractor',    name: 'Tractor',     icon: 'Tractor',       color: '#f59e0b', subItems: ['Disc', 'Z/L', 'Hall', 'K/D'], unitLabel: 'acres',  isWageType: false }),
     cat({ id: 'water',      name: 'Water',        icon: 'Droplets',      color: '#3b82f6', subItems: ['W (pump)', 'WL (labour)'],     unitLabel: 'hours',  isWageType: false }),
@@ -21,11 +22,12 @@ export const transportConfig: BusinessConfig = {
   type: 'transport',
   labels: { context: 'Vehicle', period: 'Weekly run', quantity: 'Trips' },
   currency: 'PKR',
+  units: ['km', 'trips', 'litres', 'hours', 'days'],
   categories: [
-    cat({ id: 'fuel',        name: 'Fuel',        icon: 'Fuel',         color: '#f59e0b', isWageType: false }),
-    cat({ id: 'maintenance', name: 'Maintenance', icon: 'Wrench',       color: '#3b82f6', isWageType: false }),
-    cat({ id: 'driver',      name: 'Driver wage', icon: 'Users',        color: '#f97316', isWageType: true  }),
-    cat({ id: 'toll',        name: 'Tolls',       icon: 'ReceiptText',  color: '#a855f7', isWageType: false }),
+    cat({ id: 'fuel',        name: 'Fuel',        icon: 'Fuel',         color: '#f59e0b', unitLabel: 'litres', isWageType: false }),
+    cat({ id: 'maintenance', name: 'Maintenance', icon: 'Wrench',       color: '#3b82f6',                     isWageType: false }),
+    cat({ id: 'driver',      name: 'Driver wage', icon: 'Users',        color: '#f97316', unitLabel: 'days',   isWageType: true  }),
+    cat({ id: 'toll',        name: 'Tolls',       icon: 'ReceiptText',  color: '#a855f7', unitLabel: 'trips',  isWageType: false }),
   ],
 }
 
@@ -34,7 +36,7 @@ const emptyConfig = (
   context: string,
   period: string,
   quantity: string,
-): BusinessConfig => ({ type, labels: { context, period, quantity }, currency: 'PKR', categories: [] })
+): BusinessConfig => ({ type, labels: { context, period, quantity }, currency: 'PKR', units: ['units', 'hours', 'days', 'kg'], categories: [] })
 
 export const defaultConfigs: Record<BusinessConfig['type'], BusinessConfig> = {
   agriculture:  agricultureConfig,

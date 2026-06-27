@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Pencil, Trash2, Check, Loader2 } from 'lucide-react'
 import { CategoryIcon } from '@/components/shared/CategoryIcon'
 import { BottomSheet } from '@/components/shared/BottomSheet'
 import { DeleteDialog } from '@/components/shared/DeleteDialog'
+import { UnitPicker } from '@/components/shared/UnitPicker'
 import { useAppStore } from '@/store/app.store'
 import { useUpdateBusinessConfig } from '@/hooks/mutations/useUpdateBusinessConfig'
 import { agricultureConfig } from '@/lib/config/business-configs'
@@ -25,6 +26,7 @@ export default function CategoriesPage() {
   const [newName, setNewName]       = useState('')
   const [newColor, setNewColor]     = useState(PALETTE[0])
   const [newIcon, setNewIcon]       = useState('Leaf')
+  const [newUnit, setNewUnit]       = useState('')
   const [isWage, setIsWage]         = useState(false)
   const [deleteId, setDeleteId]     = useState<string | null>(null)
   const [nameError, setNameError]   = useState('')
@@ -36,6 +38,7 @@ export default function CategoriesPage() {
     setNewName('')
     setNewColor(PALETTE[0])
     setNewIcon('Leaf')
+    setNewUnit('')
     setIsWage(false)
     setNameError('')
     setSheetOpen(true)
@@ -46,6 +49,7 @@ export default function CategoriesPage() {
     setNewName(cat.name)
     setNewColor(cat.color)
     setNewIcon(cat.icon)
+    setNewUnit(cat.unitLabel ?? '')
     setIsWage(cat.isWageType)
     setNameError('')
     setSheetOpen(true)
@@ -59,10 +63,11 @@ export default function CategoriesPage() {
     setNameError('')
 
     let updated: Category[]
+    const unit = newUnit.trim() || undefined
     if (editing) {
       updated = categories.map((c) =>
         c.id === editing.id
-          ? { ...c, name: newName.trim(), color: newColor, icon: newIcon, isWageType: isWage }
+          ? { ...c, name: newName.trim(), color: newColor, icon: newIcon, isWageType: isWage, unitLabel: unit }
           : c,
       )
     } else {
@@ -72,12 +77,17 @@ export default function CategoriesPage() {
         color:      newColor,
         icon:       newIcon,
         isWageType: isWage,
+        unitLabel:  unit,
       }
       updated = [...categories, newCat]
     }
 
+    // Persist new unit to the master units list so it appears as a suggestion everywhere
+    const updatedUnits =
+      unit && !config.units.includes(unit) ? [...config.units, unit] : config.units
+
     setCategories(updated)
-    updateConfig({ ...config, categories: updated })
+    updateConfig({ ...config, categories: updated, units: updatedUnits })
     setSheetOpen(false)
   }
 
@@ -124,6 +134,7 @@ export default function CategoriesPage() {
                 <p className="text-title-md text-on-surface">{cat.name}</p>
                 <p className="text-body-sm text-on-surface-variant">
                   {cat.isWageType ? 'Wage type' : 'Standard'}
+                  {cat.unitLabel ? ` · ${cat.unitLabel}` : ''}
                   {cat.subItems?.length ? ` · ${cat.subItems.join(', ')}` : ''}
                 </p>
               </div>
@@ -226,6 +237,17 @@ export default function CategoriesPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Unit */}
+        <div className="flex flex-col gap-2">
+          <label className="text-body-sm text-on-surface-variant">Unit of Measure (Optional)</label>
+          <UnitPicker
+            value={newUnit}
+            onChange={setNewUnit}
+            suggestions={config.units ?? []}
+            placeholder="e.g. bags, litres, acres"
+          />
         </div>
 
         {/* Wage toggle */}
