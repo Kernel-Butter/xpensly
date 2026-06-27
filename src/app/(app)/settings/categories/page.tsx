@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, Pencil, Trash2, X, Check, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Check, Loader2 } from 'lucide-react'
 import { CategoryIcon } from '@/components/shared/CategoryIcon'
+import { BottomSheet } from '@/components/shared/BottomSheet'
+import { DeleteDialog } from '@/components/shared/DeleteDialog'
 import { useAppStore } from '@/store/app.store'
 import { useUpdateBusinessConfig } from '@/hooks/mutations/useUpdateBusinessConfig'
 import { agricultureConfig } from '@/lib/config/business-configs'
@@ -25,6 +27,7 @@ export default function CategoriesPage() {
   const [newIcon, setNewIcon]       = useState('Leaf')
   const [isWage, setIsWage]         = useState(false)
   const [deleteId, setDeleteId]     = useState<string | null>(null)
+  const [nameError, setNameError]   = useState('')
 
   const { mutate: updateConfig, isPending: isSaving } = useUpdateBusinessConfig()
 
@@ -34,6 +37,7 @@ export default function CategoriesPage() {
     setNewColor(PALETTE[0])
     setNewIcon('Leaf')
     setIsWage(false)
+    setNameError('')
     setSheetOpen(true)
   }
 
@@ -43,17 +47,22 @@ export default function CategoriesPage() {
     setNewColor(cat.color)
     setNewIcon(cat.icon)
     setIsWage(cat.isWageType)
+    setNameError('')
     setSheetOpen(true)
   }
 
   function handleSave() {
-    if (!newName.trim()) return
+    if (!newName.trim()) {
+      setNameError('Category name is required')
+      return
+    }
+    setNameError('')
 
     let updated: Category[]
     if (editing) {
       updated = categories.map((c) =>
         c.id === editing.id
-          ? { ...c, name: newName, color: newColor, icon: newIcon, isWageType: isWage }
+          ? { ...c, name: newName.trim(), color: newColor, icon: newIcon, isWageType: isWage }
           : c,
       )
     } else {
@@ -94,7 +103,8 @@ export default function CategoriesPage() {
 
       <main className="mx-auto w-full max-w-2xl px-4 pt-4 flex flex-col gap-3 pb-24">
         <p className="text-body-sm text-on-surface-variant">
-          Expense categories for <span className="font-medium text-on-surface">{activeBusiness?.name ?? 'your business'}</span>
+          Expense categories for{' '}
+          <span className="font-medium text-on-surface">{activeBusiness?.name ?? 'your business'}</span>
         </p>
 
         {categories.map((cat) => (
@@ -103,7 +113,6 @@ export default function CategoriesPage() {
             className="relative overflow-hidden rounded-lg border border-gray-200 bg-surface flex items-center justify-between p-3"
           >
             <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: cat.color }} />
-
             <div className="flex items-center gap-3 pl-3">
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-full"
@@ -119,7 +128,6 @@ export default function CategoriesPage() {
                 </p>
               </div>
             </div>
-
             <div className="flex items-center gap-1">
               <button
                 onClick={() => openEdit(cat)}
@@ -139,7 +147,7 @@ export default function CategoriesPage() {
 
         {categories.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-14 text-center">
-            <p className="text-body-sm text-on-surface-variant">No categories yet. Add one below.</p>
+            <p className="text-body-sm text-on-surface-variant">No categories yet. Tap + to add one.</p>
           </div>
         )}
       </main>
@@ -153,125 +161,98 @@ export default function CategoriesPage() {
       </button>
 
       {/* Delete confirmation */}
-      {deleteId && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setDeleteId(null)} />
-          <div className="fixed inset-x-4 bottom-8 z-50 rounded-2xl bg-surface shadow-xl p-5 flex flex-col gap-4 max-w-sm mx-auto">
-            <p className="text-title-md text-on-surface text-center">Delete this category?</p>
-            <p className="text-body-sm text-on-surface-variant text-center">
-              Existing expenses using this category won&apos;t be affected.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-title-md text-on-surface hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteId)}
-                className="flex-1 rounded-lg bg-red-500 py-2.5 text-title-md text-white hover:bg-red-600 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <DeleteDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => deleteId && handleDelete(deleteId)}
+        title="Delete category?"
+        description="Existing expenses using this category won't be affected."
+        confirmLabel="Delete Category"
+      />
 
       {/* Add / Edit sheet */}
-      {sheetOpen && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setSheetOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] overflow-y-auto rounded-t-3xl bg-surface shadow-xl">
-            <div className="flex flex-col items-center pt-3 pb-2">
-              <div className="h-1.5 w-12 rounded-full bg-gray-200" />
-            </div>
-            <div className="px-4 pb-10 flex flex-col gap-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-headline-sm text-on-surface">
-                  {editing ? 'Edit Category' : 'Add Category'}
-                </h2>
-                <button onClick={() => setSheetOpen(false)} className="rounded-full p-2 text-on-surface-variant hover:bg-gray-100">
-                  <X size={20} />
-                </button>
-              </div>
+      <BottomSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title={editing ? 'Edit Category' : 'Add Category'}
+      >
+        {/* Name */}
+        <div className="flex flex-col gap-2">
+          <label className="text-body-sm text-on-surface-variant">Category Name</label>
+          <input
+            value={newName}
+            onChange={(e) => { setNewName(e.target.value); setNameError('') }}
+            placeholder="e.g. Equipment Repair"
+            autoFocus
+            className={`w-full rounded-lg border bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:outline-none focus:ring-1 transition-colors ${
+              nameError ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-200 focus:border-primary focus:ring-primary'
+            }`}
+          />
+          {nameError && <p className="text-label-xs text-red-500">{nameError}</p>}
+        </div>
 
-              {/* Name */}
-              <div className="flex flex-col gap-2">
-                <label className="text-body-sm text-on-surface-variant">Category Name</label>
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Equipment Repair"
-                  autoFocus
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                />
-              </div>
-
-              {/* Icon grid */}
-              <div className="flex flex-col gap-2">
-                <label className="text-body-sm text-on-surface-variant">Icon</label>
-                <div className="grid grid-cols-5 gap-2">
-                  {ICONS.map((name) => (
-                    <button
-                      key={name}
-                      onClick={() => setNewIcon(name)}
-                      className={`aspect-square rounded-lg border-2 flex items-center justify-center transition-colors ${
-                        newIcon === name
-                          ? 'border-primary bg-surface-container text-primary'
-                          : 'border-gray-200 bg-gray-50 text-on-surface-variant hover:bg-gray-100'
-                      }`}
-                    >
-                      <CategoryIcon iconName={name} size={22} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Color picker */}
-              <div className="flex flex-col gap-2">
-                <label className="text-body-sm text-on-surface-variant">Color</label>
-                <div className="flex gap-3 flex-wrap">
-                  {PALETTE.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => setNewColor(c)}
-                      className="h-10 w-10 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
-                      style={{ backgroundColor: c }}
-                    >
-                      {newColor === c && <Check size={16} className="text-white" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Wage toggle */}
-              <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <div>
-                  <p className="text-title-md text-on-surface">Wage Type</p>
-                  <p className="text-body-sm text-on-surface-variant">Shows worker picker on expense entry</p>
-                </div>
-                <button
-                  onClick={() => setIsWage(!isWage)}
-                  className={`relative inline-block h-6 w-11 rounded-full transition-colors ${isWage ? 'bg-primary' : 'bg-gray-200'}`}
-                >
-                  <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${isWage ? 'left-6' : 'left-1'}`} />
-                </button>
-              </div>
-
+        {/* Icon grid */}
+        <div className="flex flex-col gap-2">
+          <label className="text-body-sm text-on-surface-variant">Icon</label>
+          <div className="grid grid-cols-5 gap-2">
+            {ICONS.map((name) => (
               <button
-                onClick={handleSave}
-                disabled={!newName.trim() || isSaving}
-                className="w-full rounded-lg bg-primary py-3 text-title-md text-on-primary hover:opacity-90 transition-opacity active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                key={name}
+                onClick={() => setNewIcon(name)}
+                className={`aspect-square rounded-lg border-2 flex items-center justify-center transition-colors ${
+                  newIcon === name
+                    ? 'border-primary bg-surface-container text-primary'
+                    : 'border-gray-200 bg-gray-50 text-on-surface-variant hover:bg-gray-100'
+                }`}
               >
-                {isSaving && <Loader2 size={16} className="animate-spin" />}
-                {editing ? 'Save Changes' : 'Add Category'}
+                <CategoryIcon iconName={name} size={22} />
               </button>
-            </div>
+            ))}
           </div>
-        </>
-      )}
+        </div>
+
+        {/* Color picker */}
+        <div className="flex flex-col gap-2">
+          <label className="text-body-sm text-on-surface-variant">Color</label>
+          <div className="flex gap-3 flex-wrap">
+            {PALETTE.map((c) => (
+              <button
+                key={c}
+                onClick={() => setNewColor(c)}
+                className="h-10 w-10 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+                style={{ backgroundColor: c }}
+              >
+                {newColor === c && <Check size={16} className="text-white" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Wage toggle */}
+        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div>
+            <p className="text-title-md text-on-surface">Wage Type</p>
+            <p className="text-body-sm text-on-surface-variant">Shows worker picker on expense entry</p>
+          </div>
+          <button
+            onClick={() => setIsWage(!isWage)}
+            className={`relative inline-block h-6 w-11 rounded-full transition-colors ${isWage ? 'bg-primary' : 'bg-gray-200'}`}
+          >
+            <span
+              className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform shadow-sm ${isWage ? 'left-6' : 'left-1'}`}
+            />
+          </button>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="w-full rounded-xl bg-primary py-3.5 text-title-md text-on-primary hover:opacity-90 transition-opacity active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {isSaving && <Loader2 size={16} className="animate-spin" />}
+          {editing ? 'Save Changes' : 'Add Category'}
+        </button>
+      </BottomSheet>
     </div>
   )
 }

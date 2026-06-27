@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { X, CheckCircle, Calendar, Camera, ChevronDown } from 'lucide-react'
+import { X, CheckCircle, Calendar, Camera, ChevronDown, AlertCircle } from 'lucide-react'
 import { CategoryIcon } from '@/components/shared/CategoryIcon'
 import { useAppStore } from '@/store/app.store'
 import { useAddExpense } from '@/hooks/mutations/useAddExpense'
@@ -24,27 +24,30 @@ export function AddExpenseSheet() {
     activePeriod, activeBusiness, editingExpense,
   } = useAppStore()
 
-  const config = activeBusiness?.config ?? agricultureConfig
-  const currency = config.currency
-  const periodId = activePeriod?.id ?? ''
+  const config    = activeBusiness?.config ?? agricultureConfig
+  const currency  = config.currency
+  const periodId  = activePeriod?.id ?? ''
   const isEditMode = !!editingExpense
 
-  const { mutate: addExpense, isPending: isAdding } = useAddExpense(periodId)
+  const { mutate: addExpense,    isPending: isAdding   } = useAddExpense(periodId)
   const { mutate: updateExpense, isPending: isUpdating } = useUpdateExpense(periodId)
-  const { data: workers = [] } = useWorkers(activeBusiness?.id)
+  const { data: workers = [] }                           = useWorkers(activeBusiness?.id)
   const isPending = isAdding || isUpdating
 
-  const [receiptFile, setReceiptFile] = useState<File | null>(null)
-  const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
+  const [receiptFile,      setReceiptFile]      = useState<File | null>(null)
+  const [receiptPreview,   setReceiptPreview]   = useState<string | null>(null)
   const [uploadingReceipt, setUploadingReceipt] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ExpenseFormValues>({
+  const {
+    register, handleSubmit, watch, setValue, reset,
+    formState: { errors },
+  } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      date: today(),
+      date:        today(),
       category_id: config.categories[0]?.id ?? '',
-      total: 0,
+      total:       0,
     },
   })
 
@@ -61,12 +64,12 @@ export function AddExpenseSheet() {
       reset({
         date:        editingExpense.date,
         category_id: editingExpense.category_id,
-        sub_item:    editingExpense.sub_item ?? undefined,
+        sub_item:    editingExpense.sub_item    ?? undefined,
         description: editingExpense.description ?? undefined,
-        quantity:    editingExpense.quantity ?? undefined,
-        unit_cost:   editingExpense.unit_cost ?? undefined,
+        quantity:    editingExpense.quantity    ?? undefined,
+        unit_cost:   editingExpense.unit_cost   ?? undefined,
         total:       editingExpense.total,
-        worker_id:   editingExpense.worker_id ?? undefined,
+        worker_id:   editingExpense.worker_id   ?? undefined,
       })
       if (editingExpense.receipt_url) setReceiptPreview(editingExpense.receipt_url)
     } else {
@@ -100,7 +103,7 @@ export function AddExpenseSheet() {
   }
 
   async function uploadReceipt(file: File): Promise<string | null> {
-    const ext = file.name.split('.').pop()
+    const ext  = file.name.split('.').pop()
     const path = `${activeBusiness?.id}/${Date.now()}.${ext}`
     setUploadingReceipt(true)
     try {
@@ -125,9 +128,7 @@ export function AddExpenseSheet() {
     if (!periodId) return
 
     let receiptUrl: string | null = editingExpense?.receipt_url ?? null
-    if (receiptFile) {
-      receiptUrl = await uploadReceipt(receiptFile)
-    }
+    if (receiptFile) receiptUrl = await uploadReceipt(receiptFile)
 
     if (isEditMode && editingExpense) {
       updateExpense(
@@ -135,12 +136,12 @@ export function AddExpenseSheet() {
           id:          editingExpense.id as ExpenseId,
           date:        values.date,
           category_id: values.category_id,
-          sub_item:    values.sub_item ?? null,
+          sub_item:    values.sub_item    ?? null,
           description: values.description ?? null,
-          quantity:    values.quantity ?? null,
-          unit_cost:   values.unit_cost ?? null,
+          quantity:    values.quantity    ?? null,
+          unit_cost:   values.unit_cost   ?? null,
           total:       values.total,
-          worker_id:   values.worker_id ?? null,
+          worker_id:   values.worker_id   ?? null,
           receipt_url: receiptUrl,
         },
         { onSuccess: handleClose },
@@ -150,12 +151,12 @@ export function AddExpenseSheet() {
         {
           date:        values.date,
           category_id: values.category_id,
-          sub_item:    values.sub_item ?? null,
+          sub_item:    values.sub_item    ?? null,
           description: values.description ?? null,
-          quantity:    values.quantity ?? null,
-          unit_cost:   values.unit_cost ?? null,
+          quantity:    values.quantity    ?? null,
+          unit_cost:   values.unit_cost   ?? null,
           total:       values.total,
-          worker_id:   values.worker_id ?? null,
+          worker_id:   values.worker_id   ?? null,
           business_id: activeBusiness?.id ?? '',
           receipt_url: receiptUrl,
         },
@@ -166,11 +167,15 @@ export function AddExpenseSheet() {
 
   if (!isAddExpenseOpen) return null
 
+  const noPeriod    = !periodId
+  const noBusiness  = !activeBusiness
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-on-background/40" onClick={handleClose} />
 
-      <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col rounded-t-3xl bg-surface shadow-xl animate-in slide-in-from-bottom duration-300">
+      <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col rounded-t-3xl bg-surface shadow-xl animate-in slide-in-from-bottom duration-300 ease-out">
+        {/* Handle + title */}
         <div className="flex flex-col items-center pt-3 pb-2 relative">
           <div className="h-1.5 w-12 rounded-full bg-gray-200 mb-3" />
           <h2 className="text-headline-sm text-on-surface w-full text-center px-4">
@@ -183,6 +188,27 @@ export function AddExpenseSheet() {
             <X size={20} />
           </button>
         </div>
+
+        {/* Blocking banners */}
+        {noBusiness && (
+          <div className="mx-4 mb-2 flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+            <AlertCircle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-title-md text-amber-800">No business selected</p>
+              <p className="text-body-sm text-amber-700">Go to Settings → Businesses to create or select one.</p>
+            </div>
+          </div>
+        )}
+
+        {!noBusiness && noPeriod && (
+          <div className="mx-4 mb-2 flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+            <AlertCircle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-title-md text-amber-800">No active season</p>
+              <p className="text-body-sm text-amber-700">Create a season first — tap the season banner on the dashboard.</p>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-y-auto px-4 pb-28 space-y-5 mt-1">
           {/* Category pills */}
@@ -210,6 +236,9 @@ export function AddExpenseSheet() {
                 )
               })}
             </div>
+            {errors.category_id && (
+              <p className="mt-1 text-label-xs text-red-500">{errors.category_id.message}</p>
+            )}
           </div>
 
           <form id="expense-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -221,9 +250,15 @@ export function AddExpenseSheet() {
                 <input
                   type="date"
                   {...register('date')}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 py-3 pl-9 pr-4 text-body-base focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  className={cn(
+                    'w-full rounded-lg border bg-gray-50 py-3 pl-9 pr-4 text-body-base focus:outline-none focus:ring-1 transition-colors',
+                    errors.date
+                      ? 'border-red-400 focus:border-red-400 focus:ring-red-400'
+                      : 'border-gray-200 focus:border-primary focus:ring-primary',
+                  )}
                 />
               </div>
+              {errors.date && <p className="mt-1 text-label-xs text-red-500">{errors.date.message}</p>}
             </div>
 
             {/* Worker picker — only for wage categories */}
@@ -327,35 +362,45 @@ export function AddExpenseSheet() {
             </div>
 
             {/* Total preview */}
-            <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-surface-green p-3">
-              <span className="text-title-md text-primary-dark">Total Amount</span>
-              <span className="text-headline-md text-primary-dark">
+            <div className={cn(
+              'flex items-center justify-between rounded-xl border p-3',
+              errors.total
+                ? 'border-red-300 bg-red-50'
+                : 'border-primary/20 bg-surface-green',
+            )}>
+              <span className={cn('text-title-md', errors.total ? 'text-red-700' : 'text-primary-dark')}>
+                Total Amount
+              </span>
+              <span className={cn('text-headline-md', errors.total ? 'text-red-700' : 'text-primary-dark')}>
                 {fmtCurrency(total ?? 0, currency)}
               </span>
             </div>
 
             {errors.total && (
-              <p className="text-label-xs text-danger-red">{errors.total.message}</p>
-            )}
-
-            {!periodId && (
-              <p className="text-center text-label-xs text-on-surface-variant">
-                No active period — set up a crop season from the dashboard
+              <p className="text-label-xs text-red-500">
+                {errors.total.message ?? 'Enter an amount greater than 0'}
               </p>
             )}
           </form>
         </div>
 
+        {/* Sticky submit */}
         <div className="absolute bottom-0 left-0 right-0 border-t border-gray-100 bg-surface p-4">
-          <button
-            type="submit"
-            form="expense-form"
-            disabled={isPending || uploadingReceipt || !periodId}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3.5 text-title-md text-on-primary shadow-[0_4px_12px_rgba(22,163,74,0.3)] hover:bg-primary-dark transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            <CheckCircle size={20} />
-            {uploadingReceipt ? 'Uploading…' : isPending ? 'Saving…' : isEditMode ? 'Update Expense' : 'Save Expense'}
-          </button>
+          {(noBusiness || noPeriod) ? (
+            <div className="rounded-xl bg-gray-100 py-3.5 text-center text-title-md text-on-surface-variant">
+              {noBusiness ? 'Select a business to continue' : 'Create a season to continue'}
+            </div>
+          ) : (
+            <button
+              type="submit"
+              form="expense-form"
+              disabled={isPending || uploadingReceipt}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-title-md text-on-primary shadow-[0_4px_12px_rgba(22,163,74,0.3)] hover:bg-primary-dark transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              <CheckCircle size={20} />
+              {uploadingReceipt ? 'Uploading…' : isPending ? 'Saving…' : isEditMode ? 'Update Expense' : 'Save Expense'}
+            </button>
+          )}
         </div>
       </div>
     </>

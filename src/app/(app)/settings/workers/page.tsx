@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Search, UserPlus, User, X, Pencil, Trash2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Search, UserPlus, User, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { BottomSheet } from '@/components/shared/BottomSheet'
+import { DeleteDialog } from '@/components/shared/DeleteDialog'
 import { useAppStore } from '@/store/app.store'
 import { useWorkers } from '@/hooks/queries/useWorkers'
 import { useCreateWorker } from '@/hooks/mutations/useCreateWorker'
@@ -15,21 +17,22 @@ import type { Worker } from '@/types'
 export default function WorkersPage() {
   const router = useRouter()
   const activeBusiness = useAppStore((s) => s.activeBusiness)
-  const currency = activeBusiness?.config?.currency ?? 'PKR'
+  const currency   = activeBusiness?.config?.currency ?? 'PKR'
   const businessId = activeBusiness?.id
 
   const { data: workers = [], isLoading } = useWorkers(businessId)
   const { mutate: createWorker, isPending: isCreating } = useCreateWorker()
   const { mutate: updateWorker, isPending: isUpdating } = useUpdateWorker(businessId)
-  const { mutate: deleteWorker } = useDeleteWorker(businessId)
+  const { mutate: deleteWorker }                        = useDeleteWorker(businessId)
 
-  const [search, setSearch]       = useState('')
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [editing, setEditing]     = useState<Worker | null>(null)
+  const [search, setSearch]             = useState('')
+  const [sheetOpen, setSheetOpen]       = useState(false)
+  const [editing, setEditing]           = useState<Worker | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Worker | null>(null)
-  const [wName, setWName]   = useState('')
-  const [wRate, setWRate]   = useState('')
-  const [wNotes, setWNotes] = useState('')
+  const [wName, setWName]               = useState('')
+  const [wRate, setWRate]               = useState('')
+  const [wNotes, setWNotes]             = useState('')
+  const [nameError, setNameError]       = useState('')
 
   const filtered = workers.filter(
     (w) =>
@@ -42,6 +45,7 @@ export default function WorkersPage() {
     setWName('')
     setWRate('')
     setWNotes('')
+    setNameError('')
     setSheetOpen(true)
   }
 
@@ -50,22 +54,29 @@ export default function WorkersPage() {
     setWName(w.name)
     setWRate(w.daily_rate?.toString() ?? '')
     setWNotes(w.notes ?? '')
+    setNameError('')
     setSheetOpen(true)
   }
 
   function handleSubmit() {
-    if (!wName.trim() || !businessId) return
+    if (!wName.trim()) {
+      setNameError('Worker name is required')
+      return
+    }
+    if (!businessId) return
+    setNameError('')
+
     const rate = wRate ? parseFloat(wRate) : null
 
     if (editing) {
       updateWorker(
         { id: editing.id, name: wName.trim(), daily_rate: rate, notes: wNotes || null },
-        { onSuccess: () => { setSheetOpen(false) } },
+        { onSuccess: () => setSheetOpen(false) },
       )
     } else {
       createWorker(
         { business_id: businessId, name: wName.trim(), daily_rate: rate, notes: wNotes || null },
-        { onSuccess: () => { setSheetOpen(false); setWName(''); setWRate(''); setWNotes('') } },
+        { onSuccess: () => setSheetOpen(false) },
       )
     }
   }
@@ -115,7 +126,10 @@ export default function WorkersPage() {
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 p-3 border-b border-gray-100">
                 <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="flex-1"><Skeleton className="h-4 w-28 mb-1" /><Skeleton className="h-3 w-20" /></div>
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-28 mb-1" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
               </div>
             ))
           ) : filtered.length === 0 ? (
@@ -175,96 +189,70 @@ export default function WorkersPage() {
       </button>
 
       {/* Delete confirmation */}
-      {deleteTarget && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setDeleteTarget(null)} />
-          <div className="fixed inset-x-4 bottom-8 z-50 rounded-2xl bg-surface shadow-xl p-5 flex flex-col gap-4 max-w-sm mx-auto">
-            <p className="text-title-md text-on-surface text-center">Remove <span className="font-bold">{deleteTarget.name}</span>?</p>
-            <p className="text-body-sm text-on-surface-variant text-center">
-              Their past wage entries will not be affected.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-title-md text-on-surface hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { deleteWorker(deleteTarget.id); setDeleteTarget(null) }}
-                className="flex-1 rounded-lg bg-red-500 py-2.5 text-title-md text-white hover:bg-red-600 transition-colors"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <DeleteDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget) { deleteWorker(deleteTarget.id); setDeleteTarget(null) } }}
+        title={`Remove ${deleteTarget?.name ?? 'worker'}?`}
+        description="Their past wage entries will not be affected."
+        confirmLabel="Remove Worker"
+      />
 
       {/* Add / Edit sheet */}
-      {sheetOpen && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setSheetOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bg-surface shadow-xl">
-            <div className="flex flex-col items-center pt-3 pb-2">
-              <div className="h-1.5 w-12 rounded-full bg-gray-200" />
-            </div>
-            <div className="px-4 pb-10 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-headline-sm text-on-surface">{editing ? 'Edit Worker' : 'Add Worker'}</h2>
-                <button onClick={() => setSheetOpen(false)} className="rounded-full p-2 text-on-surface-variant hover:bg-gray-100">
-                  <X size={20} />
-                </button>
-              </div>
+      <BottomSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title={editing ? 'Edit Worker' : 'Add Worker'}
+        contentClassName="px-4 pb-10 flex flex-col gap-4"
+      >
+        <div className="flex flex-col gap-1.5">
+          <label className="text-body-sm text-on-surface-variant">Name</label>
+          <input
+            value={wName}
+            onChange={(e) => { setWName(e.target.value); setNameError('') }}
+            placeholder="e.g. Akram"
+            autoFocus
+            className={`w-full rounded-lg border bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:outline-none focus:ring-1 transition-colors ${
+              nameError ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-200 focus:border-primary focus:ring-primary'
+            }`}
+          />
+          {nameError && <p className="text-label-xs text-red-500">{nameError}</p>}
+        </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-body-sm text-on-surface-variant">Name</label>
-                <input
-                  value={wName}
-                  onChange={(e) => setWName(e.target.value)}
-                  placeholder="e.g. Akram"
-                  autoFocus
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-body-sm text-on-surface-variant">Daily Rate (Optional)</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-body-sm text-on-surface-variant">₨</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={wRate}
-                    onChange={(e) => setWRate(e.target.value)}
-                    placeholder="0"
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-8 pr-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-body-sm text-on-surface-variant">Role / Notes (Optional)</label>
-                <input
-                  value={wNotes}
-                  onChange={(e) => setWNotes(e.target.value)}
-                  placeholder="e.g. Supervisor"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                />
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                disabled={(isCreating || isUpdating) || !wName.trim()}
-                className="w-full rounded-lg bg-primary py-3.5 text-title-md text-on-primary active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
-              >
-                {(isCreating || isUpdating) && <Loader2 size={16} className="animate-spin" />}
-                {editing ? 'Save Changes' : 'Add Worker'}
-              </button>
-            </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-body-sm text-on-surface-variant">Daily Rate (Optional)</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-body-sm text-on-surface-variant">₨</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={wRate}
+              onChange={(e) => setWRate(e.target.value)}
+              placeholder="0"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-8 pr-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            />
           </div>
-        </>
-      )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-body-sm text-on-surface-variant">Role / Notes (Optional)</label>
+          <input
+            value={wNotes}
+            onChange={(e) => setWNotes(e.target.value)}
+            placeholder="e.g. Supervisor"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+          />
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={isCreating || isUpdating}
+          className="w-full rounded-xl bg-primary py-3.5 text-title-md text-on-primary active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
+        >
+          {(isCreating || isUpdating) && <Loader2 size={16} className="animate-spin" />}
+          {editing ? 'Save Changes' : 'Add Worker'}
+        </button>
+      </BottomSheet>
     </div>
   )
 }

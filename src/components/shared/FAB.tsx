@@ -1,11 +1,19 @@
 'use client'
 
 import { Plus } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/store/app.store'
 import { cn } from '@/lib/utils/cn'
 
+// Settings sub-pages manage their own FAB — hide the global one there
+const HIDDEN_PATHS = ['/settings']
+
 export function FAB() {
   const openAddExpense = useAppStore((s) => s.openAddExpense)
+  const pathname = usePathname()
+
+  const hidden = HIDDEN_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
+  if (hidden) return null
 
   return (
     <button

@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, CheckCircle, X, Calendar } from 'lucide-react'
+import { ArrowLeft, Plus, CheckCircle, Calendar, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { BottomSheet } from '@/components/shared/BottomSheet'
 import { useAppStore } from '@/store/app.store'
 import { usePeriods } from '@/hooks/queries/usePeriods'
 import { useCreatePeriod } from '@/hooks/mutations/useCreatePeriod'
@@ -19,18 +20,34 @@ export default function SeasonsPage() {
   const { mutate: createPeriod, isPending } = useCreatePeriod()
 
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [pName, setPName] = useState('')
-  const [pStart, setPStart] = useState('')
-  const [pEnd, setPEnd] = useState('')
-  const [pBudget, setPBudget] = useState('')
+  const [pName, setPName]         = useState('')
+  const [pStart, setPStart]       = useState('')
+  const [pEnd, setPEnd]           = useState('')
+  const [pBudget, setPBudget]     = useState('')
+  const [nameError, setNameError] = useState('')
 
   function handleSelect(period: Period) {
     setActivePeriod(period)
     router.back()
   }
 
+  function openSheet() {
+    setPName('')
+    setPStart('')
+    setPEnd('')
+    setPBudget('')
+    setNameError('')
+    setSheetOpen(true)
+  }
+
   function handleCreate() {
-    if (!pName.trim() || !activeBusiness) return
+    if (!pName.trim()) {
+      setNameError('Season name is required')
+      return
+    }
+    if (!activeBusiness) return
+    setNameError('')
+
     createPeriod(
       {
         business_id: activeBusiness.id,
@@ -44,10 +61,6 @@ export default function SeasonsPage() {
         onSuccess: (newPeriod) => {
           setActivePeriod(newPeriod)
           setSheetOpen(false)
-          setPName('')
-          setPStart('')
-          setPEnd('')
-          setPBudget('')
         },
       },
     )
@@ -87,9 +100,7 @@ export default function SeasonsPage() {
         ) : (
           periods.map((period) => {
             const isActive = period.id === activePeriod?.id || period.is_active
-            const dateRange = [period.start_date, period.end_date]
-              .filter(Boolean)
-              .join(' — ')
+            const dateRange = [period.start_date, period.end_date].filter(Boolean).join(' — ')
             return isActive ? (
               <button
                 key={period.id}
@@ -134,84 +145,78 @@ export default function SeasonsPage() {
       </main>
 
       <button
-        onClick={() => setSheetOpen(true)}
+        onClick={openSheet}
         className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-[20px] bg-primary text-on-primary shadow-fab active:scale-95 transition-transform"
       >
         <Plus size={24} />
       </button>
 
-      {sheetOpen && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setSheetOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bg-surface shadow-xl">
-            <div className="flex flex-col items-center pt-3 pb-2">
-              <div className="h-1.5 w-12 rounded-full bg-gray-200" />
-            </div>
-            <div className="px-4 pb-8 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-headline-sm text-on-surface">New Season</h2>
-                <button onClick={() => setSheetOpen(false)} className="rounded-full p-2 text-secondary hover:bg-gray-100">
-                  <X size={20} />
-                </button>
-              </div>
+      <BottomSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title="New Season"
+        contentClassName="px-4 pb-10 flex flex-col gap-4"
+      >
+        <div className="flex flex-col gap-1.5">
+          <label className="text-body-sm text-on-surface-variant">Season Name</label>
+          <input
+            value={pName}
+            onChange={(e) => { setPName(e.target.value); setNameError('') }}
+            placeholder="e.g. Rabi 2025"
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            className={`w-full rounded-lg border bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:outline-none focus:ring-1 transition-colors ${
+              nameError ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-200 focus:border-primary focus:ring-primary'
+            }`}
+          />
+          {nameError && <p className="text-label-xs text-red-500">{nameError}</p>}
+        </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-body-sm text-on-surface-variant">Season Name</label>
-                <input
-                  value={pName}
-                  onChange={(e) => setPName(e.target.value)}
-                  placeholder="e.g. Rabi 2025"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-body-sm text-on-surface-variant">Start Date</label>
-                  <input
-                    type="date"
-                    value={pStart}
-                    onChange={(e) => setPStart(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-body-sm text-on-surface-variant">End Date</label>
-                  <input
-                    type="date"
-                    value={pEnd}
-                    onChange={(e) => setPEnd(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-body-sm text-on-surface-variant">Total Budget (Optional)</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-body-sm text-on-surface-variant">₨</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={pBudget}
-                    onChange={(e) => setPBudget(e.target.value)}
-                    placeholder="0"
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-8 pr-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={handleCreate}
-                disabled={isPending || !pName.trim()}
-                className="w-full rounded-lg bg-primary py-3.5 text-title-md text-on-primary hover:bg-primary-container transition-colors active:scale-[0.98] disabled:opacity-50"
-              >
-                {isPending ? 'Creating…' : 'Create Season'}
-              </button>
-            </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-body-sm text-on-surface-variant">Start Date</label>
+            <input
+              type="date"
+              value={pStart}
+              onChange={(e) => setPStart(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            />
           </div>
-        </>
-      )}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-body-sm text-on-surface-variant">End Date</label>
+            <input
+              type="date"
+              value={pEnd}
+              onChange={(e) => setPEnd(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-body-sm text-on-surface-variant">Total Budget (Optional)</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-body-sm text-on-surface-variant">₨</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={pBudget}
+              onChange={(e) => setPBudget(e.target.value)}
+              placeholder="0"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-8 pr-4 py-3 text-body-base text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={handleCreate}
+          disabled={isPending}
+          className="w-full rounded-xl bg-primary py-3.5 text-title-md text-on-primary hover:bg-primary-container transition-colors active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {isPending && <Loader2 size={16} className="animate-spin" />}
+          {isPending ? 'Creating…' : 'Create Season'}
+        </button>
+      </BottomSheet>
     </div>
   )
 }
