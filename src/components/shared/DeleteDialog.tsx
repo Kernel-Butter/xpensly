@@ -1,6 +1,16 @@
 'use client'
 
+import { Drawer, ConfigProvider } from 'antd'
 import { Trash2 } from 'lucide-react'
+
+const antdTheme = {
+  token: {
+    colorPrimary: '#006b2c',
+    colorBgMask: 'rgba(0,0,0,0.5)',
+    borderRadius: 24,
+    fontFamily: 'var(--font-sans, Inter, system-ui, sans-serif)',
+  },
+}
 
 interface DeleteDialogProps {
   open: boolean
@@ -19,20 +29,24 @@ export function DeleteDialog({
   description = 'This action cannot be undone.',
   confirmLabel = 'Delete',
 }: DeleteDialogProps) {
-  if (!open) return null
-
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-[55] bg-black/50 animate-in fade-in duration-200"
-        onClick={onClose}
-      />
-
-      {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-[60] rounded-t-3xl bg-surface shadow-2xl animate-in slide-in-from-bottom duration-300 ease-out">
+    <ConfigProvider theme={antdTheme}>
+      <Drawer
+        open={open}
+        onClose={onClose}
+        placement="bottom"
+        height="auto"
+        closable={false}
+        styles={{
+          wrapper: {
+            borderRadius: '24px 24px 0 0',
+            overflow: 'hidden',
+          },
+          body: { padding: 0 },
+        }}
+      >
         {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-2">
+        <div className="flex justify-center pt-3 pb-4">
           <div className="h-1.5 w-12 rounded-full bg-gray-200" />
         </div>
 
@@ -48,7 +62,7 @@ export function DeleteDialog({
             </div>
           </div>
 
-          {/* Actions — destructive first (visually prominent) */}
+          {/* Actions */}
           <div className="flex flex-col gap-2.5">
             <button
               onClick={onConfirm}
@@ -64,7 +78,7 @@ export function DeleteDialog({
             </button>
           </div>
         </div>
-      </div>
-    </>
+      </Drawer>
+    </ConfigProvider>
   )
 }

@@ -1,17 +1,25 @@
 'use client'
 
-import { useEffect, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
+import { Drawer, ConfigProvider } from 'antd'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+
+const antdTheme = {
+  token: {
+    colorPrimary: '#006b2c',
+    colorBgMask: 'rgba(0,0,0,0.5)',
+    borderRadius: 24,
+    borderRadiusLG: 24,
+    fontFamily: 'var(--font-sans, Inter, system-ui, sans-serif)',
+  },
+}
 
 interface BottomSheetProps {
   open: boolean
   onClose: () => void
   title?: string
   children: ReactNode
-  /** Extra classes on the panel */
-  className?: string
-  /** Classes on the inner content wrapper (default: px-4 pb-10 flex flex-col gap-5) */
   contentClassName?: string
 }
 
@@ -20,41 +28,36 @@ export function BottomSheet({
   onClose,
   title,
   children,
-  className,
   contentClassName,
 }: BottomSheetProps) {
-  useEffect(() => {
-    if (!open) return
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [open])
-
-  if (!open) return null
-
   return (
-    <>
-      {/* Backdrop — z-[55] so it sits above BottomNav (z-50) */}
-      <div
-        className="fixed inset-0 z-[55] bg-black/50 animate-in fade-in duration-200"
-        onClick={onClose}
-      />
-
-      {/* Panel — z-[60] so it sits above backdrop and BottomNav */}
-      <div
-        className={cn(
-          'fixed inset-x-0 bottom-0 z-[60]',
-          'max-h-[90dvh] overflow-y-auto overscroll-contain',
-          'rounded-t-3xl bg-surface shadow-2xl',
-          'animate-in slide-in-from-bottom duration-300 ease-out',
-          className,
-        )}
+    <ConfigProvider theme={antdTheme}>
+      <Drawer
+        open={open}
+        onClose={onClose}
+        placement="bottom"
+        height="auto"
+        closable={false}
+        styles={{
+          wrapper: {
+            borderRadius: '24px 24px 0 0',
+            overflow: 'hidden',
+            maxHeight: '90dvh',
+          },
+          body: {
+            padding: 0,
+            overflowY: 'auto',
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+          },
+        }}
       >
         {/* Drag handle */}
         <div className="sticky top-0 z-10 flex flex-col items-center bg-surface pt-3 pb-2">
           <div className="h-1.5 w-12 rounded-full bg-gray-200" />
         </div>
 
-        {/* Optional header */}
+        {/* Optional titled header with close button */}
         {title && (
           <div className="flex items-center justify-between px-4 pt-1 pb-3">
             <h2 className="text-headline-sm text-on-surface">{title}</h2>
@@ -72,7 +75,7 @@ export function BottomSheet({
         <div className={cn('px-4 pb-10 flex flex-col gap-5', contentClassName)}>
           {children}
         </div>
-      </div>
-    </>
+      </Drawer>
+    </ConfigProvider>
   )
 }

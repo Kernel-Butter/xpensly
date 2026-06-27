@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import Script from 'next/script'
+import { AntdRegistry } from '@ant-design/nextjs-registry'
 import './globals.css'
 import { Providers } from './providers'
 
@@ -39,7 +40,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full`}>
       <body className="min-h-full bg-gray-50 antialiased" suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        <AntdRegistry>
+          <Providers>{children}</Providers>
+        </AntdRegistry>
         <Script
           id="sw-register"
           strategy="afterInteractive"

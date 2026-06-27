@@ -6,6 +6,7 @@ import type { Period } from '@/types'
 
 type CreatePeriodInput = {
   business_id: string
+  context_id?: string | null   // which field/site this season belongs to
   name: string
   start_date?: string | null
   end_date?: string | null
